@@ -1,5 +1,16 @@
 ;;;; a.lisp
 
+;; ...
+;;
+;; Note: In order for the debugger to work in step-by-step mode, you have to
+;; place in the swank package and execute the declaim optimize debug statement 0
+;; below.
+;; 
+;; (in-package :swank)
+;; ; added the following line
+;; (declaim (optimize (debug 0)))
+;; ...
+
 (in-package #:a)
 (ql:quickload :inferior-shell)
 
@@ -160,7 +171,6 @@
                  'string))
   (fresh-line))
 
-;; p 138
 
 (defparameter *drink-order* '((bill . double-espresso)
                               (lisa . small-drip-coffee)
@@ -213,6 +223,7 @@
 
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
+(defparameter *player-pos* nil)
 (defparameter *visited-nodes* nil)
 (defparameter *node-num* 30)
 (defparameter *edge-num* 45)
@@ -274,7 +285,7 @@
                               edge-list)))
     (add-cops (edges-to-alist edge-list) cops)))
 
-(defun edge-to-alist (edge-list)
+(defun edges-to-alist (edge-list)
   (mapcar (lambda (node1)
             (cons node1
                   (mapcar (lambda (edge)
@@ -303,7 +314,7 @@
 (defun within-one (a b edge-alist)
   (member b (neighbors a edge-alist)))
 
-(defun whithin-two (a b edge-alist)
+(defun within-two (a b edge-alist)
   (or (within-one a b edge-alist)
       (some (lambda (x)
               (within-one x b edge-alist))
@@ -315,6 +326,64 @@
                        collect (random-node))))
     (loop for n from 1 to *node-num*
        collect (append (list n)
-                       (cond ((eql n wumpus) '(wumpus)))))))
+                       (cond ((eql n wumpus) '(wumpus))
+                             ((within-two n wumpus edge-alist) '(blood!)))
+                       (cond ((member n glow-worms)
+                              '(glow-worm))
+                             ((some (lambda (worm)
+                                      (within-one n worm edge-alist))
+                                    glow-worms)
+                              '(lights!)))
+                       (when (some #'cdr (cdr (assoc n edge-alist)))
+                         '(sirens!))))))
 
-; p199
+;; 203
+(defun new-game ()
+  (setf *congestion-city-edges* (make-city-edges))
+  (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*))
+  (setf *player-pos* (find-empty-node))
+  (setf *visited-nodes* (list *player-pos*))
+  (draw-city))
+
+(defun find-empty-node ()
+  (let ((x (random-node)))
+    (if (cdr (assoc x *congestion-city-nodes*))
+        (find-empty-node)
+        x)))
+
+(defun draw-city ()
+  (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
+
+(defun known-city-nodes ()
+  (mapcar (lambda (node)
+            (if (member node *visited-nodes*)
+                (let ((n (assoc node *congestion-city-nodes*)))
+                  (if (eql node *player-pos*)
+                      (append n '(*))
+                      n))
+                (list node '?)))
+          (remove-duplicates
+           (append *visited-nodes*
+                   (mapcan (lambda (node)
+                             (mapcar #'car
+                                     (cdr (assoc node *congestion-city-edges*))))
+                           *visited-nodes*)))))
+
+(defun known-city-edges ()
+  (mapcar (lambda (node)
+            (cons node (mapcar (lambda (x)
+                                 (if (member (car x) *visited-nodes*)
+                                     x
+                                     (list (car x))))
+                               (cdr (assoc node *congestion-city-edges*)))))
+          *visited-nodes*))
+
+
+(defun ingredients (order)
+  (mapcan (lambda (burger)
+            (break)
+            (case burger
+              (single '(patty))
+              (double '(patty patty))
+              (double-cheese '(patty patty cheese))))
+          order))

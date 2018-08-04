@@ -14,7 +14,12 @@
 (in-package #:a)
 (ql:quickload :inferior-shell)
 
-(declaim (optimize (debug 3)))
+;; (declaim (optimize (debug 3)))
+;; (declaim (optimize (debug 0)
+;;                    (sb-c::insert-step-conditions 0)
+;;                    (sb-c::insert-debug-catch 0)))
+
+;; (proclaim (optimize (debug 3)))
 
 (defparameter *small* 1)
 (defparameter *big* 100)
@@ -362,7 +367,7 @@
                       (append n '(*))
                       n))
                 (list node '?)))
-          (remove-duplicates
+          (remove-duplicates 
            (append *visited-nodes*
                    (mapcan (lambda (node)
                              (mapcar #'car
@@ -378,12 +383,21 @@
                                (cdr (assoc node *congestion-city-edges*)))))
           *visited-nodes*))
 
-
 (defun ingredients (order)
   (mapcan (lambda (burger)
-            (break)
             (case burger
               (single '(patty))
               (double '(patty patty))
               (double-cheese '(patty patty cheese))))
           order))
+
+(defun draw-known-city ()
+  (ugraph->png "known-city" (known-city-nodes) (known-city-edges)))
+
+(defun new-game ()
+  (setf *congestion-city-edges* (make-city-edges))
+  (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*))
+  (setf *player-pos* (find-empty-node))
+  (setf *visited-nodes* (list *player-pos*))
+  (draw-city)
+  (draw-known-city))

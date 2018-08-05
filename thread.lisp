@@ -122,6 +122,6 @@
           (bt:destroy-thread destroyer-thread))
         (format t "~%[Main Thread] Destroyer thread is already dead"))
     (until (bt:thread-alive-p destroyer-thread)
-           (format t "[Main Thread] Waiting for destroyer thread to die..."))
+      (format t "[Main Thread] Waiting for destroyer thread to die..."))
     (format t "~%[Main Thread] Destroyer thread dead")
     (format t "~%[Main Thread] Adios!~%")))
